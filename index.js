@@ -43,6 +43,7 @@ app.use('/api/tasks', require('./routes/tasks.route'));
 app.use('/api/uploads', require('./routes/uploads.route'));
 
 app.use('/api/inventory', require('./routes/inventory.route'));
+app.use('/api/paginas', require('./routes/paginas.route'));
 
 app.use('/api/logproducts', require('./routes/logproducts.route'));
 app.use('/api/invoices', require('./routes/invoice.route'));
