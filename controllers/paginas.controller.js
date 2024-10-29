@@ -54,8 +54,12 @@ const createPagina = async(req, res = response) => {
     try {
 
         const uid = req.uid;
-        const total = Number(req.params.total);
+        let { total, copia, scaner } = req.body;
         const product = req.params.product;
+
+        total = Number(total);
+        copia = Number(copia);
+        scaner = Number(scaner);
 
         // VALIDATE IMAGE
         if (!req.files || Object.keys(req.files).length === 0) {
@@ -94,6 +98,8 @@ const createPagina = async(req, res = response) => {
             .toFile(path, async(err, info) => {
 
                 let qty = 0;
+                let qtys = 0;
+                let qtyc = 0;
                 const oldPagina = await Pagina.findOne({ product })
                     .sort({ fecha: -1 })
                 if (oldPagina) {
@@ -111,12 +117,18 @@ const createPagina = async(req, res = response) => {
                         });
                     }
 
-                    qty = total - oldPagina.total;
+                    qty = total - (oldPagina.total || 0);
+                    qtys = scaner - (oldPagina.scaner || 0);
+                    qtyc = copia - (oldPagina.copia || 0);
                 }
 
                 const pagina = new Pagina({
                     total: Number(total),
+                    scaner: Number(scaner),
+                    copia: Number(copia),
                     qty: Number(qty),
+                    qtys: Number(qtys),
+                    qtyc: Number(qtyc),
                     img: nameFile,
                     product: product,
                     staff: uid

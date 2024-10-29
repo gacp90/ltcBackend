@@ -2,10 +2,22 @@ const { Schema, model } = require('mongoose');
 
 const PaginasSchema = Schema({
 
+    scaner: {
+        type: Number,
+    },
+    copia: {
+        type: Number,
+    },
     total: {
         type: Number,
     },
     qty: {
+        type: Number,
+    },
+    qtyc: {
+        type: Number,
+    },
+    qtys: {
         type: Number,
     },
     img: {

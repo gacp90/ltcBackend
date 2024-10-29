@@ -19,7 +19,7 @@ router.use(expressFileUpload());
 /** =====================================================================
  *  CREATE PAGINAS
 =========================================================================*/
-router.post('/:total/:product', validarJWT, createPagina);
+router.post('/create/:product', validarJWT, createPagina);
 
 /** =====================================================================
  *  GET PAGINAS QUERY

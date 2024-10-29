@@ -532,6 +532,70 @@ const deletePreventives = async(req, res = response) => {
 };
 
 /** =====================================================================
+ *  DEL ITEMS PREVENTIVE
+=========================================================================*/
+const delItemPreventive = async(req, res = response) => {
+
+    try {
+
+        const {...item } = req.body;
+        const preid = req.params.preid;
+
+        // BUSCAMOS EL CORRECTIVO
+        const preventiveDB = await Preventive.findById(preid);
+        if (!preventiveDB) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'Error, no existe ningun preventivo con este ID'
+            })
+        }
+
+        // BUSCAMOS EL PRODUCTO
+        const inventoryDB = await Inventory.findOne({ sku: item.sku })
+        if (!inventoryDB) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'Error, no existe ningun producto con este ID'
+            })
+        }
+
+
+        // ELIMINAMOS EL ITEM DEL CORRECTIVO
+        const result = await Preventive.updateOne({ _id: preid }, { $pull: { items: { _id: item._id } } });
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({
+                ok: false,
+                msg: 'Ha ocurrido un error al eliminar el item.'
+            });
+        }
+
+        // ELIMINAMOS EL HISTORIAL
+        await LogProduct.findByIdAndDelete(item.logproduct)
+
+        // ACTUALIZAMOS EL INVENTARIO Y GUARDAMOS
+        inventoryDB.inventory += item.quantity;
+        inventoryDB.save();
+
+        const preventive = await Preventive.findById(preid);
+
+        res.json({
+            ok: true,
+            preventive
+        })
+
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error inesperado, porfavor intente nuevamente'
+        });
+    }
+
+};
+
+/** =====================================================================
  *  PDF PREVENTIVE
 =========================================================================*/
 const pdfPreventive = async(req, res = response) => {
@@ -912,5 +976,6 @@ module.exports = {
     getPreventiveProduct,
     pdfPreventive,
     deleteNotePreventive,
-    addItemsPreventive
+    addItemsPreventive,
+    delItemPreventive
 };

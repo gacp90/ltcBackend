@@ -509,6 +509,70 @@ const addItemsCorrective = async(req, res = response) => {
 };
 
 /** =====================================================================
+ *  DEL ITEMS CORRECTIVE
+=========================================================================*/
+const delItemCorrective = async(req, res = response) => {
+
+    try {
+
+        const {...item } = req.body;
+        const coid = req.params.coid;
+
+        // BUSCAMOS EL CORRECTIVO
+        const correctiveDB = await Corrective.findById(coid);
+        if (!correctiveDB) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'Error, no existe ningun correctivo con este ID'
+            })
+        }
+
+        // BUSCAMOS EL PRODUCTO
+        const inventoryDB = await Inventory.findOne({ sku: item.sku })
+        if (!inventoryDB) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'Error, no existe ningun producto con este ID'
+            })
+        }
+
+
+        // ELIMINAMOS EL ITEM DEL CORRECTIVO
+        const result = await Corrective.updateOne({ _id: coid }, { $pull: { items: { _id: item._id } } });
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({
+                ok: false,
+                msg: 'Ha ocurrido un error al eliminar el item.'
+            });
+        }
+
+        // ELIMINAMOS EL HISTORIAL
+        await LogProduct.findByIdAndDelete(item.logproduct)
+
+        // ACTUALIZAMOS EL INVENTARIO Y GUARDAMOS
+        inventoryDB.inventory += item.quantity;
+        inventoryDB.save();
+
+        const corrective = await Corrective.findById(coid);
+
+        res.json({
+            ok: true,
+            corrective
+        })
+
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error inesperado, porfavor intente nuevamente'
+        });
+    }
+
+};
+
+/** =====================================================================
  *  DELETE CORRECTIVES
 =========================================================================*/
 const deleteCorrectives = async(req, res = response) => {
@@ -552,9 +616,6 @@ const deleteCorrectives = async(req, res = response) => {
 
 };
 
-/** =====================================================================
- *  DELETE CORRECTIVES
-=========================================================================*/
 /** =====================================================================
  *  PDF CORRECTIVE
 =========================================================================*/
@@ -958,5 +1019,6 @@ module.exports = {
     pdfCorrective,
     getCorrectivesQuery,
     deleteNoteCorrective,
-    addItemsCorrective
+    addItemsCorrective,
+    delItemCorrective
 };
