@@ -639,16 +639,16 @@ const pdfPreventive = async(req, res = response) => {
         // See below for browser usage
         doc.pipe(fs.createWriteStream(pathPDf));
 
-        // doc.image(path.join(__dirname, `../uploads/logo/liteco.png`), 210, 35, { width: 130, align: 'center', valign: 'center' });
-        doc.image(path.join(__dirname, `../uploads/logo/castitoner.png`), 210, 35, { width: 130, align: 'center', valign: 'center' });
+        doc.image(path.join(__dirname, `../uploads/logo/liteco.png`), 210, 35, { width: 130, align: 'center', valign: 'center' });
+        // doc.image(path.join(__dirname, `../uploads/logo/castitoner.png`), 210, 35, { width: 130, align: 'center', valign: 'center' });
 
         // Embed a font, set the font size, and render some text
         doc
             .font('Helvetica-Bold')
             .fontSize(16)
             .moveDown(2)
-            // .text('LINEA TECNOLOGICA DEL ORIENTE SA', {
-            .text('CASTITONER & SUMINISTROS', {
+            .text('LINEA TECNOLOGICA DEL ORIENTE SA', {
+                // .text('CASTITONER & SUMINISTROS', {
                 width: 412,
                 align: 'center',
                 ellipsis: true,
@@ -656,32 +656,32 @@ const pdfPreventive = async(req, res = response) => {
         doc
             .font('Helvetica')
             .fontSize(12)
-            // .text('NIT. 901.614.914-0', {
-            .text('NIT. 88.264.373-5', {
+            .text('NIT. 901.614.914-0', {
+                // .text('NIT. 88.264.373-5', {
                 width: 412,
                 align: 'center',
                 ellipsis: true
             });
         doc
             .fontSize(12)
-            // .text('Carrera 10 # 26 - 11 Lagos 1 Floridablanca', {
-            .text('AV 0 11 72 LC 205 CC GRAN BULEVAR BRR CENTRO CUCUTA', {
+            .text('Carrera 10 # 26 - 11 Lagos 1 Floridablanca', {
+                // .text('AV 0 11 72 LC 205 CC GRAN BULEVAR BRR CENTRO CUCUTA', {
                 width: 412,
                 align: 'center',
                 ellipsis: true
             });
         doc
             .fontSize(12)
-            // .text('Telefono: 3112125174', {
-            .text('Telefono: 3103011828', {
+            .text('Telefono: 3112125174', {
+                // .text('Telefono: 3103011828', {
                 width: 412,
                 align: 'center',
                 ellipsis: true
             });
         doc
             .fontSize(12)
-            // .text('comercial@litecoriente.com', {
-            .text('castitoner@gmail.com', {
+            .text('comercial@litecoriente.com', {
+                // .text('castitoner@gmail.com', {
                 width: 412,
                 align: 'center',
                 ellipsis: true
