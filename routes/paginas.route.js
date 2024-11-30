@@ -10,7 +10,7 @@ const { validarCampos } = require('../middlewares/validar-campos');
 const { validarJWT } = require('../middlewares/validar-jwt');
 
 // CONTROLLER
-const { getQueryPagina, createPagina } = require('../controllers/paginas.controller');
+const { getQueryPagina, createPagina, updatePagina } = require('../controllers/paginas.controller');
 
 const router = Router();
 
@@ -25,6 +25,11 @@ router.post('/create/:product', validarJWT, createPagina);
  *  GET PAGINAS QUERY
 =========================================================================*/
 router.post('/query', validarJWT, getQueryPagina);
+
+/** =====================================================================
+ *  GET UPDATE PAGINA
+=========================================================================*/
+router.put('/:id', validarJWT, updatePagina);
 
 
 // EXPORT

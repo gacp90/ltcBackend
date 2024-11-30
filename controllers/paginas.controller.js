@@ -47,7 +47,7 @@ const getQueryPagina = async(req, res = response) => {
 
 
 /** =====================================================================
- *  CREATE PRODUCT
+ *  CREATE
 =========================================================================*/
 const createPagina = async(req, res = response) => {
 
@@ -158,8 +158,73 @@ const createPagina = async(req, res = response) => {
 
 };
 
+/** =====================================================================
+ *  UPDATE
+=========================================================================*/
+const updatePagina = async(req, res = response) => {
+
+    const paid = req.params.id;
+
+    try {
+
+        // SEARCH
+        const paginaDB = await Pagina.findById(paid);
+        if (!paginaDB) {
+            return res.status(404).json({
+                ok: false,
+                msg: 'No existe ningun log de paginas con este ID'
+            });
+        }
+        // SEARCH
+
+        // VALIDATE
+        let {...campos } = req.body;
+
+        campos.qty = 0;
+        campos.qtys = 0;
+        campos.qtyc = 0;
+
+        const oldPaginas = await Pagina.find({ product: paginaDB.product })
+            .sort({ fecha: -1 })
+            .limit(2)
+
+        if (oldPaginas.length > 2) {            
+            const oldPagina = oldPaginas[1];
+    
+            if (oldPagina) {
+                if (oldPagina.total > campos.total) {
+                    return res.status(400).json({
+                        ok: false,
+                        msg: `Error, el ultimo registro de paginas impresas fue de ${oldPagina.total}, y estas registrando una cantidad menor de paginas impresas ${total}`
+                    });
+                }
+                campos.qty = total - (oldPagina.total || 0);
+                campos.qtys = scaner - (oldPagina.scaner || 0);
+                campos.qtyc = copia - (oldPagina.copia || 0);
+            }
+        }
+
+        // UPDATE
+        const paginaUpdate = await Pagina.findByIdAndUpdate(paid, campos, { new: true, useFindAndModify: false });
+
+        res.json({
+            ok: true,
+            pagina: paginaUpdate
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Error Inesperado'
+        });
+    }
+
+};
+
 // EXPORTS
 module.exports = {
     getQueryPagina,
-    createPagina
+    createPagina,
+    updatePagina
 };
