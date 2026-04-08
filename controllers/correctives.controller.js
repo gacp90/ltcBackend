@@ -760,7 +760,7 @@ const pdfCorrective = async (req, res = response) => {
             doc.text(`Scanner: ${ultimaPagina.scaner || 0}`, 300, labelsY);
             
             // Total calculado (suma de los tres)
-            const totalAcumulado = (ultimaPagina.total || 0) + (ultimaPagina.copia || 0) + (ultimaPagina.scaner || 0);
+            const totalAcumulado = (ultimaPagina.qty || 0) + (ultimaPagina.qtys || 0) + (ultimaPagina.qtyc || 0);
             doc.font('Helvetica-Bold').text(`TOTAL ACUMULADO: ${totalAcumulado}`, 400, labelsY);
             
             doc.moveDown(2.5); // Espacio para que el siguiente contenido no pise el cuadro
