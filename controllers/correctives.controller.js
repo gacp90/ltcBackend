@@ -460,7 +460,7 @@ const addItemsCorrective = async(req, res = response) => {
         }
         // SEARCH CLIENT
 
-        const { qty, sku, type, description } = req.body;
+        const { qty, sku, type, description, amount } = req.body;
 
         const product = await Inventory.findOne({ sku });
 
@@ -489,6 +489,7 @@ const addItemsCorrective = async(req, res = response) => {
             sku,
             quantity: qty,
             description,
+            amount,
             logproduct: log._id
         });
 
