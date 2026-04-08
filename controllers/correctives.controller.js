@@ -680,7 +680,7 @@ const pdfCorrective = async (req, res = response) => {
         // QUITAMOS height y ellipsis para que el texto fluya
         doc.font('Helvetica').text(corretiveDB.description, { width: 480, align: 'justify' });
 
-        // --- TABLA DE ITEMS / REPUESTOS Y TOTALES ---
+        // --- TABLA DE ITEMS / REPUESTOS Y TOTALESSS ---
         if (corretiveDB.items && corretiveDB.items.length > 0) {
             doc.moveDown(2).font('Helvetica-Bold').fontSize(11).text('REPUESTOS / MATERIALES UTILIZADOS:');
             
