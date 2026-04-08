@@ -10,7 +10,7 @@ const Corrective = require('../models/correctives.model');
 
 const Inventory = require('../models/inventory.model');
 const LogProduct = require('../models/log.products.model');
-const Paginas = require('../models/paginas');
+const Paginas = require('../models/paginas.model');
 
 /** =====================================================================
  *  GET ROLE
