@@ -10,6 +10,7 @@ const Corrective = require('../models/correctives.model');
 
 const Inventory = require('../models/inventory.model');
 const LogProduct = require('../models/log.products.model');
+const Paginas = require('../models/paginas');
 
 /** =====================================================================
  *  GET ROLE
@@ -638,6 +639,11 @@ const pdfCorrective = async (req, res = response) => {
         const stream = fs.createWriteStream(pathPDf);
         doc.pipe(stream);
 
+        // BUSCAR EL ÚLTIMO REGISTRO DE PÁGINAS DEL PRODUCTO
+        const ultimaPagina = await Paginas.findOne({ product: corretiveDB.product._id })
+            .sort({ fecha: -1 }) // Ordenar por fecha descendente (la más reciente)
+            .populate('staff', 'name');
+
         // --- ENCABEZADO ---
         const logoPath = path.join(__dirname, `../uploads/logo/castitoner.png`);
         if (fs.existsSync(logoPath)) {
@@ -672,6 +678,96 @@ const pdfCorrective = async (req, res = response) => {
         doc.moveDown().font('Helvetica-Bold').text('DESCRIPCIÓN DE LA SOLICITUD:');
         // QUITAMOS height y ellipsis para que el texto fluya
         doc.font('Helvetica').text(corretiveDB.description, { width: 480, align: 'justify' });
+
+        // --- TABLA DE ITEMS / REPUESTOS Y TOTALES ---
+        if (corretiveDB.items && corretiveDB.items.length > 0) {
+            doc.moveDown(2).font('Helvetica-Bold').fontSize(11).text('REPUESTOS / MATERIALES UTILIZADOS:');
+            
+            const tableTop = doc.y + 10;
+            const colSku = 50;
+            const colDesc = 110;
+            const colCant = 360;
+            const colUnit = 420;
+            const colTotal = 500;
+
+            // Formateador de moneda
+            const formatCurrency = (num) => '$ ' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+
+            // Encabezado
+            doc.fontSize(9).fillColor('#444444');
+            doc.text('SKU', colSku, tableTop);
+            doc.text('DESCRIPCIÓN', colDesc, tableTop);
+            doc.text('CANT', colCant, tableTop, { width: 40, align: 'center' });
+            doc.text('V. UNIT', colUnit, tableTop, { width: 70, align: 'right' });
+            doc.text('TOTAL', colTotal, tableTop, { width: 70, align: 'right' });
+
+            doc.moveTo(50, tableTop + 15).lineTo(570, tableTop + 15).lineWidth(1).stroke('#0056b3');
+            
+            let rowY = tableTop + 25;
+            let granTotal = 0;
+            doc.font('Helvetica').fillColor('black');
+
+            for (const item of corretiveDB.items) {
+                if (rowY > 700) { doc.addPage(); rowY = 50; }
+
+                if (!item.amount) {
+                    item.amount = 0;
+                }
+
+                const subtotal = (item.quantity || 0) * (item.amount || 0);
+                granTotal += subtotal;
+
+                doc.fontSize(8.5);
+                doc.text(item.sku || 'N/A', colSku, rowY);
+                
+                const descOptions = { width: 240, align: 'left' };
+                doc.text(item.description, colDesc, rowY, descOptions);
+                
+                doc.text(item.quantity.toString(), colCant, rowY, { width: 40, align: 'center' });
+                doc.text(formatCurrency(item.amount || 0), colUnit, rowY, { width: 70, align: 'right' });
+                doc.text(formatCurrency(subtotal), colTotal, rowY, { width: 70, align: 'right' });
+
+                const descHeight = doc.heightOfString(item.description, descOptions);
+                rowY += Math.max(descHeight, 15) + 8; 
+                
+                doc.moveTo(50, rowY - 4).lineTo(570, rowY - 4).lineWidth(0.5).stroke('#eeeeee');
+            }
+
+            
+
+            // --- FILA DE TOTAL GENERAL ---
+            doc.moveDown(1);
+            rowY = doc.y;
+            doc.font('Helvetica-Bold').fontSize(10);
+            doc.fillColor('#0056b3').text('TOTAL REPUESTOS:', colUnit - 20, rowY, { width: 90, align: 'right' });
+            doc.fillColor('black').text(formatCurrency(granTotal), colTotal, rowY, { width: 70, align: 'right' });
+            
+            doc.y = rowY + 30; // Espacio antes de la siguiente sección
+        }
+
+        if (ultimaPagina) {
+            doc.moveDown(1.5);
+            const contadorY = doc.y;
+            
+            // Cuadro de fondo sutil para resaltar
+            doc.rect(50, contadorY, 500, 45).fill('#f2f7fb');
+            doc.fillColor('#0056b3').font('Helvetica-Bold').fontSize(10);
+            
+            doc.text('CONTADORES ACTUALES DEL EQUIPO:', 60, contadorY + 10);
+            
+            doc.fillColor('black').font('Helvetica').fontSize(9);
+            const labelsY = contadorY + 25;
+            
+            doc.text(`Impresiones: ${ultimaPagina.total || 0}`, 60, labelsY);
+            doc.text(`Copias: ${ultimaPagina.copia || 0}`, 180, labelsY);
+            doc.text(`Scanner: ${ultimaPagina.scaner || 0}`, 300, labelsY);
+            
+            // Total calculado (suma de los tres)
+            const totalAcumulado = (ultimaPagina.total || 0) + (ultimaPagina.copia || 0) + (ultimaPagina.scaner || 0);
+            doc.font('Helvetica-Bold').text(`TOTAL ACUMULADO: ${totalAcumulado}`, 400, labelsY);
+            
+            doc.moveDown(2.5); // Espacio para que el siguiente contenido no pise el cuadro
+        }
 
         // --- NOTAS / INFORME TÉCNICO ---
         doc.moveDown().font('Helvetica-Bold').fillColor('#0056b3').text('INFORME TÉCNICO DETALLADO:').fillColor('black');
