@@ -755,15 +755,15 @@ const pdfCorrective = async (req, res = response) => {
             doc.fillColor('black').font('Helvetica').fontSize(9);
             const labelsY = contadorY + 25;
             
-            doc.text(`Impresiones: ${ultimaPagina.total || 0}`, 60, labelsY);
-            doc.text(`Copias: ${ultimaPagina.copia || 0}`, 180, labelsY);
-            doc.text(`Scanner: ${ultimaPagina.scaner || 0}`, 300, labelsY);
+            doc.text(`Impresiones: ${ultimaPagina.qty || 0}`, 60, labelsY);
+            doc.text(`Copias: ${ultimaPagina.qtyc || 0}`, 180, labelsY);
+            doc.text(`Scanner: ${ultimaPagina.qtys || 0}`, 300, labelsY);
             
             // Total calculado (suma de los tres)
             const totalAcumulado = (ultimaPagina.qty || 0) + (ultimaPagina.qtys || 0) + (ultimaPagina.qtyc || 0);
             doc.font('Helvetica-Bold').text(`TOTAL ACUMULADO: ${totalAcumulado}`, 400, labelsY);
             
-            doc.moveDown(2.5); // Espacio para que el siguiente contenido no pise el cuadro
+            doc.moveDown(2.5); // Espacio para que el siguiente contenido no pise el cuadrossss
         }
 
         // --- NOTAS / INFORME TÉCNICO ---
