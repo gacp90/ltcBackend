@@ -696,8 +696,7 @@ const pdfCorrective = async (req, res = response) => {
 
             // Encabezado
             doc.fontSize(9).fillColor('#444444');
-            doc.text('SKU', colSku, tableTop);
-            doc.text('DESCRIPCIÓN', colDesc, tableTop);
+            doc.text('DESCRIPCIÓN', colDesc + colSku, tableTop);
             doc.text('CANT', colCant, tableTop, { width: 40, align: 'center' });
             doc.text('V. UNIT', colUnit, tableTop, { width: 70, align: 'right' });
             doc.text('TOTAL', colTotal, tableTop, { width: 70, align: 'right' });
@@ -717,9 +716,6 @@ const pdfCorrective = async (req, res = response) => {
 
                 const subtotal = (item.quantity || 0) * (item.amount || 0);
                 granTotal += subtotal;
-
-                doc.fontSize(8.5);
-                doc.text(item.sku || 'N/A', colSku, rowY);
                 
                 const descOptions = { width: 240, align: 'left' };
                 doc.text(item.description, colDesc, rowY, descOptions);
