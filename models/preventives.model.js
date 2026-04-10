@@ -11,6 +11,9 @@ const ItemsSchema = Schema({
     quantity: {
         type: Number
     },
+    amount: {
+        type: Number
+    },
     description: {
         type: String
     },

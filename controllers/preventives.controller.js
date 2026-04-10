@@ -10,6 +10,7 @@ const Preventive = require('../models/preventives.model');
 const Product = require('../models/products.model');
 const Inventory = require('../models/inventory.model');
 const LogProduct = require('../models/log.products.model');
+const Paginas = require('../models/paginas.model');
 
 /** =====================================================================
  *  GET ROLE
@@ -382,7 +383,7 @@ const addItemsPreventive = async(req, res = response) => {
         }
         // SEARCH CLIENT
 
-        const { qty, sku, type, description } = req.body;
+        const { qty, sku, type, description, amount = 0 } = req.body;
 
         const product = await Inventory.findOne({ sku });
 
@@ -411,6 +412,7 @@ const addItemsPreventive = async(req, res = response) => {
             sku,
             quantity: qty,
             description,
+            amount,
             logproduct: log._id
         });
 
@@ -598,7 +600,231 @@ const delItemPreventive = async(req, res = response) => {
 /** =====================================================================
  *  PDF PREVENTIVE
 =========================================================================*/
-const pdfPreventive = async(req, res = response) => {
+const pdfPreventive = async (req, res = response) => {
+    try {
+        const preid = req.params.id;
+        const preventiveDB = await Preventive.findById({ _id: preid })
+            .populate('create', 'name role img')
+            .populate('staff', 'name role img')
+            .populate('notes.staff', 'name role img')
+            .populate('client', 'name cedula phone email address city')
+            .populate('product', 'code serial brand model year status estado next img ubicacion');
+
+        if (!preventiveDB) return res.status(400).json({ ok: false, msg: 'ID no encontrado' });
+
+        const pathPDf = path.join(__dirname, `../uploads/pdf/${preid}.pdf`);
+        if (fs.existsSync(pathPDf)) fs.unlinkSync(pathPDf);
+
+        const doc = new PDFDocument({ size: 'A4', margin: 50 });
+        const stream = fs.createWriteStream(pathPDf);
+        doc.pipe(stream);
+
+        // BUSCAR EL ÚLTIMO REGISTRO DE PÁGINAS DEL PRODUCTO
+        const ultimaPagina = await Paginas.findOne({ product: preventiveDB.product._id })
+            .sort({ fecha: -1 }) // Ordenar por fecha descendente (la más reciente)
+            .populate('staff', 'name');
+
+        // --- ENCABEZADO ---
+        const logoPath = path.join(__dirname, `../uploads/logo/castitoner.png`);
+        if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, 50, 40, { width: 100 });
+        }
+
+        doc.font('Helvetica-Bold').fontSize(14).text('CASTITONER & SUMINISTROS', 160, 45, { align: 'right' });
+        doc.font('Helvetica').fontSize(9)
+           .text('NIT. 88.264.373-5', { align: 'right' })
+           .text('AV 0 11 72 LC 205 CC GRAN BULEVAR - CUCUTA', { align: 'right' })
+           .text('Telefono: 3103011828 | castitoner@gmail.com', { align: 'right' });
+
+        doc.moveDown().moveTo(50, doc.y).lineTo(550, doc.y).stroke('#eeeeee');
+
+        // --- INFO CONTROL Y FECHA ---
+        doc.moveDown().font('Helvetica-Bold').fontSize(12)
+           .text(`ORDEN DE SERVICIO: #${preventiveDB.control}`, 60, doc.y,{ align: 'left' });
+        doc.fontSize(10).font('Helvetica')
+           .text(`Fecha: ${new Date(preventiveDB.date).toLocaleDateString()}`, { align: 'left' });
+
+        // --- TABLA DE DATOS PRODUCTO ---
+        doc.moveDown(1).font('Helvetica-Bold').text('DATOS DEL EQUIPO Y CLIENTE:');
+        const startY = doc.y + 5;
+        doc.font('Helvetica').fontSize(10)
+           .text(`Cliente: ${preventiveDB.client?.name || 'N/A'}`, 60, startY)
+           .text(`Código: ${preventiveDB.product.code}`, 60, doc.y)
+           .text(`Serial: ${preventiveDB.product.serial}`, 60, doc.y)
+           .text(`Marca/Modelo: ${preventiveDB.product.brand} ${preventiveDB.product.model}`, 60, doc.y)
+           .text(`Ubicación: ${preventiveDB.product.ubicacion || 'N/A'}`, 60, doc.y);
+
+        // --- DESCRIPCIÓN INICIAL ---
+        doc.moveDown().font('Helvetica-Bold').text('DESCRIPCIÓN DE LA SOLICITUD:');
+        // QUITAMOS height y ellipsis para que el texto fluya
+        doc.font('Helvetica').text('Mantenimiento Preventivo', { width: 480, align: 'justify' });
+
+        // --- TABLA DE ITEMS / REPUESTOS Y TOTALESSS ---
+        if (preventiveDB.items && preventiveDB.items.length > 0) {
+            doc.moveDown(2).font('Helvetica-Bold').fontSize(11).text('REPUESTOS / MATERIALES UTILIZADOS:');
+            
+            const tableTop = doc.y + 10;
+            const colSku = 50;
+            const colDesc = 110;
+            const colCant = 360;
+            const colUnit = 420;
+            const colTotal = 500;
+
+            // Formateador de moneda
+            const formatCurrency = (num) => '$ ' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+
+            // Encabezado
+            doc.fontSize(9).fillColor('#444444');
+            doc.text('DESCRIPCIÓN', colDesc + colSku, tableTop);
+            doc.text('CANT', colCant, tableTop, { width: 40, align: 'center' });
+            doc.text('V. UNIT', colUnit, tableTop, { width: 70, align: 'right' });
+            doc.text('TOTAL', colTotal, tableTop, { width: 70, align: 'right' });
+
+            doc.moveTo(50, tableTop + 15).lineTo(570, tableTop + 15).lineWidth(1).stroke('#0056b3');
+            
+            let rowY = tableTop + 25;
+            let granTotal = 0;
+            doc.font('Helvetica').fillColor('black');
+
+            for (const item of preventiveDB.items) {
+                if (rowY > 700) { doc.addPage(); rowY = 50; }
+
+                if (!item.amount) {
+                    item.amount = 0;
+                }
+
+                const subtotal = (item.quantity || 0) * (item.amount || 0);
+                granTotal += subtotal;
+                
+                const descOptions = { width: 240, align: 'left' };
+                doc.text(item.description, colDesc, rowY, descOptions);
+                
+                doc.text(item.quantity.toString(), colCant, rowY, { width: 40, align: 'center' });
+                doc.text(formatCurrency(item.amount || 0), colUnit, rowY, { width: 70, align: 'right' });
+                doc.text(formatCurrency(subtotal), colTotal, rowY, { width: 70, align: 'right' });
+
+                const descHeight = doc.heightOfString(item.description, descOptions);
+                rowY += Math.max(descHeight, 15) + 8; 
+                
+                doc.moveTo(50, rowY - 4).lineTo(570, rowY - 4).lineWidth(0.5).stroke('#eeeeee');
+            }
+
+            
+
+            // --- FILA DE TOTAL GENERAL ---
+            doc.moveDown(1);
+            rowY = doc.y;
+            doc.font('Helvetica-Bold').fontSize(10);
+            doc.fillColor('#0056b3').text('TOTAL REPUESTOS:', colUnit - 20, rowY, { width: 90, align: 'right' });
+            doc.fillColor('black').text(formatCurrency(granTotal), colTotal, rowY, { width: 70, align: 'right' });
+            
+            doc.y = rowY + 30; // Espacio antes de la siguiente sección
+        }
+
+        if (ultimaPagina) {
+            doc.moveDown(1.5);
+            const contadorY = doc.y;
+            
+            // Cuadro de fondo sutil para resaltar
+            doc.rect(50, contadorY, 500, 45).fill('#f2f7fb');
+            doc.fillColor('#0056b3').font('Helvetica-Bold').fontSize(10);
+            
+            doc.text('CONTADORES ACTUALES DEL EQUIPO:', 60, contadorY + 10);
+            
+            doc.fillColor('black').font('Helvetica').fontSize(9);
+            const labelsY = contadorY + 25;
+            
+            doc.text(`Impresiones: ${ultimaPagina.qty || 0}`, 60, labelsY);
+            doc.text(`Copias: ${ultimaPagina.qtyc || 0}`, 180, labelsY);
+            doc.text(`Scanner: ${ultimaPagina.qtys || 0}`, 300, labelsY);
+            
+            // Total calculado (suma de los tres)
+            const totalAcumulado = (ultimaPagina.qty || 0) + (ultimaPagina.qtys || 0) + (ultimaPagina.qtyc || 0);
+            doc.font('Helvetica-Bold').text(`TOTAL ACUMULADO: ${totalAcumulado}`, 400, labelsY);
+            
+            doc.moveDown(2.5); // Espacio para que el siguiente contenido no pise el cuadrossss
+        }
+
+        // --- NOTAS / INFORME TÉCNICO ---
+        doc.moveDown().font('Helvetica-Bold').fillColor('#0056b3').text('INFORME TÉCNICO DETALLADO:', { width: 480, align: 'justify' } ).fillColor('black');
+        
+        for (const nota of preventiveDB.notes) {
+            doc.moveDown(0.5);
+            const notaY = doc.y;
+            // Dibujar una pequeña línea vertical al lado del comentario
+            doc.moveTo(50, notaY).lineTo(50, notaY + 10).stroke('#0056b3');
+            
+            doc.font('Helvetica-Bold').fontSize(9).text(`${nota.staff.name} - ${new Date(nota.date).toLocaleString()}`, 60);
+            // IMPORTANTE: Sin height fijo para que no se corte
+            doc.font('Helvetica').fontSize(10).text(nota.note, 60, doc.y, { width: 460, align: 'justify' });
+        }
+
+        // --- ESTADO FINAL ---
+        doc.moveDown();
+        if (preventiveDB.red) doc.fillColor('green').text('✓ Equipo configurado en red', 60).fillColor('black');
+        if (preventiveDB.operativa) doc.fillColor('green').text('✓ Equipo operativo en óptimas condiciones', 60).fillColor('black');
+
+        // --- FIRMAS (Al final de la primera página o donde alcance) ---
+        if (doc.y > 700) doc.addPage();
+        const firmaY = 750;
+        doc.moveTo(60, firmaY).lineTo(200, firmaY).stroke();
+        doc.moveTo(350, firmaY).lineTo(500, firmaY).stroke();
+        doc.fontSize(8).text('Firma Técnico', 60, firmaY + 5, { width: 140, align: 'center' });
+        doc.text(`Recibe: ${preventiveDB.recibe || '________________'}`, 350, firmaY + 5, { width: 150, align: 'center' });
+
+        // --- PÁGINA DE IMÁGENES ---
+        const drawImages = async (title, images) => {
+            if (images && images.length > 0) {
+                doc.addPage();
+                doc.font('Helvetica-Bold').fontSize(12).text(title, 50, 50);
+                
+                let posX = 50;
+                let posY = 80;
+                const imgWidth = 240; // Dos imágenes por fila
+
+                for (const imgObj of images) {
+                    const imgPath = path.join(__dirname, `../uploads/correctives/${imgObj.img}`);
+                    if (fs.existsSync(imgPath)) {
+                        try {
+                            // Redimensionar con Sharp para que el PDF no pese megabytes innecesarios
+                            const optimizedImg = await sharp(imgPath)
+                                .resize(800) // Limitar ancho a 800px para calidad/peso balanceado
+                                .jpeg({ quality: 80 })
+                                .toBuffer();
+
+                            if (posY > 650) { doc.addPage(); posY = 50; }
+
+                            doc.image(optimizedImg, posX, posY, { width: imgWidth });
+                            
+                            posX += imgWidth + 20;
+                            if (posX > 400) {
+                                posX = 50;
+                                posY += 200; // Ajustar según el alto proporcional
+                            }
+                        } catch (e) { console.log("Error imagen:", e); }
+                    }
+                }
+            }
+        };
+
+        await drawImages("EVIDENCIAS: ANTES DEL MANTENIMIENTO", preventiveDB.imgBef);
+        await drawImages("EVIDENCIAS: DESPUÉS DEL MANTENIMIENTO", preventiveDB.imgAft);
+
+        doc.end();
+
+        // En lugar de setTimeout, usamos el evento 'finish' del stream
+        stream.on('finish', () => {
+            res.sendFile(pathPDf);
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error al generar PDF' });
+    }
+};
+
+
+/* const pdfPreventive = async(req, res = response) => {
 
     try {
 
@@ -958,7 +1184,7 @@ const pdfPreventive = async(req, res = response) => {
         });
     }
 
-};
+}; */
 
 /** =====================================================================
  *  DELETE PREVENTIVES
