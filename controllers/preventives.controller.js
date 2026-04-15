@@ -709,8 +709,6 @@ const pdfPreventive = async (req, res = response) => {
                 doc.moveTo(50, rowY - 4).lineTo(570, rowY - 4).lineWidth(0.5).stroke('#eeeeee');
             }
 
-            
-
             // --- FILA DE TOTAL GENERAL ---
             doc.moveDown(1);
             rowY = doc.y;
@@ -783,7 +781,7 @@ const pdfPreventive = async (req, res = response) => {
                 const imgWidth = 240; // Dos imágenes por fila
 
                 for (const imgObj of images) {
-                    const imgPath = path.join(__dirname, `../uploads/correctives/${imgObj.img}`);
+                    const imgPath = path.join(__dirname, `../uploads/preventives/${imgObj.img}`);
                     if (fs.existsSync(imgPath)) {
                         try {
                             // Redimensionar con Sharp para que el PDF no pese megabytes innecesarios
