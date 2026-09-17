@@ -645,7 +645,7 @@ const pdfCorrective = async (req, res = response) => {
             .sort({ fecha: -1 }) // Ordenar por fecha descendente (la más reciente)
             .populate('staff', 'name');
 
-        // --- ENCABEZADO ---
+        // --- ENCABEZADO a ---
         const logoPath = path.join(__dirname, `../uploads/logo/liteco.png`);
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, 50, 40, { width: 100 });
