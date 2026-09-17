@@ -625,16 +625,22 @@ const pdfPreventive = async (req, res = response) => {
             .populate('staff', 'name');
 
         // --- ENCABEZADO ---
-        const logoPath = path.join(__dirname, `../uploads/logo/castitoner.png`);
+        const logoPath = path.join(__dirname, `../uploads/logo/liteco.png`);
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, 50, 40, { width: 100 });
         }
 
-        doc.font('Helvetica-Bold').fontSize(14).text('CASTITONER & SUMINISTROS', 160, 45, { align: 'right' });
+        //doc.font('Helvetica-Bold').fontSize(14).text('CASTITONER & SUMINISTROS', 160, 45, { align: 'right' });
+        //doc.font('Helvetica').fontSize(9)
+        //   .text('NIT. 88.264.373-5', { align: 'right' })
+        //   .text('AV 0 11 72 LC 205 CC GRAN BULEVAR - CUCUTA', { align: 'right' })
+        //   .text('Telefono: 3103011828 | castitoner@gmail.com', { align: 'right' });
+
+        doc.font('Helvetica-Bold').fontSize(14).text('LINEA TECNOLOGICA DEL ORIENTE SA', 160, 45, { align: 'right' });
         doc.font('Helvetica').fontSize(9)
-           .text('NIT. 88.264.373-5', { align: 'right' })
-           .text('AV 0 11 72 LC 205 CC GRAN BULEVAR - CUCUTA', { align: 'right' })
-           .text('Telefono: 3103011828 | castitoner@gmail.com', { align: 'right' });
+           .text('NIT. 901.614.914-0', { align: 'right' })
+           .text('Carrera 10 # 26 - 11 Lagos 1 Floridablanca', { align: 'right' })
+           .text('Telefono: 3112125174 | comercial@litecoriente.com', { align: 'right' });
 
         doc.moveDown().moveTo(50, doc.y).lineTo(550, doc.y).stroke('#eeeeee');
 
