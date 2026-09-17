@@ -796,7 +796,7 @@ const pdfCorrective = async (req, res = response) => {
         const firmaY = 750;
         doc.moveTo(60, firmaY).lineTo(200, firmaY).stroke();
         doc.moveTo(350, firmaY).lineTo(500, firmaY).stroke();
-        doc.fontSize(8).text('Firma Técnico', 60, firmaY + 5, { width: 140, align: 'center' });
+        doc.fontSize(8).text(`Técnico: ${corretiveDB.staff.name || '________________'}`, 60, firmaY + 5, { width: 140, align: 'center' });
         doc.text(`Recibe: ${corretiveDB.solicitante || '________________'}`, 350, firmaY + 5, { width: 150, align: 'center' });
 
         // --- PÁGINA DE IMÁGENES ---
